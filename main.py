@@ -12,6 +12,16 @@ from streamlit_extras.colored_header import colored_header
 import datetime
 import pickle
 
+
+def local_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+
+local_css("style.css")
+
+
+
 with st.sidebar:
     st.title("Sensor Data Analysis ")
     
