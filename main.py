@@ -2,7 +2,7 @@
 """
 Created on Fri Nov 10 11:00:22 2023
 
-@author: Rideema Malji
+@author: Vijay B.
 """
 
 import pandas as pd
@@ -152,10 +152,8 @@ with tab2:
                colored_header(label='', description='', color_name='yellow-40')
                result = st.container()
                with result:
-                   st.write('Actual test data')
-                   st.plotly_chart(px.line(dataframe_l1,x=dataframe_l1.index,y=dataframe_l1.columns,title='Predicted reference Dataset'),use_container_width=True)
-                   st.write('Corrected test data/Predicted reference data')
-                   st.plotly_chart(px.line(predicted_reference_value_df,x=predicted_reference_value_df.index,y=predicted_reference_value_df.columns,title='Predicted reference Dataset'),use_container_width=True)
+                   st.plotly_chart(px.line(dataframe_l1,x=dataframe_l1.index,y=dataframe_l1.columns,title='Actual test data'),use_container_width=True)
+                   st.plotly_chart(px.line(predicted_reference_value_df,x=predicted_reference_value_df.index,y=predicted_reference_value_df.columns,title='Corrected test data/Predicted reference data'),use_container_width=True)
                    colored_header(label='', description='', color_name='yellow-40')
                    st.markdown('''Statistical summary of the Prediction''')
                    st.plotly_chart(px.histogram(predicted_reference_value_df,nbins=20,title='Data Distribution of Predictions'),use_container_width=True)
