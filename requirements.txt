@@ -7,10 +7,6 @@ audio_recorder_streamlit
 Pillow
 langchain
 PyPDF2
-chromadb
-tiktoken
 pandas
-GoogleNews
-speechrecognition
 scipy
-pinecone-client
+plotly
