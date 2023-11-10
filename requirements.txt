@@ -12,3 +12,4 @@ scipy
 plotly
 openpyxl
 pickle
+sklearn
