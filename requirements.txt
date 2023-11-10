@@ -11,4 +11,4 @@ pandas
 scipy
 plotly
 openpyxl
-sklearn
+scikit-learn
