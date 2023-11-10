@@ -11,4 +11,4 @@ pandas
 scipy
 plotly
 openpyxl
-scikit-learn
+scikit-learn==1.0.2
