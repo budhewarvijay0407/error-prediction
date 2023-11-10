@@ -11,3 +11,4 @@ pandas
 scipy
 plotly
 openpyxl
+pickle
