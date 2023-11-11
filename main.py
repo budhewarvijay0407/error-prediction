@@ -2,7 +2,7 @@
 """
 Created on Fri Nov 10 11:00:22 2023
 
-@author: Vijay B.
+@author: Vijay Budhewar
 """
 
 import pandas as pd
@@ -11,15 +11,6 @@ import plotly.express as px
 from streamlit_extras.colored_header import colored_header
 import datetime
 import pickle
-
-
-def local_css(file_name):
-    with open(file_name) as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-
-local_css("style.css")
-
 
 
 with st.sidebar:
@@ -36,11 +27,10 @@ def get_sample_numbers(df):
     return (list(range(1,len(len_test)+1)),len_test)
 
 
-tab1, tab2 = st.tabs(["Original dataset - Analysis", "ML based Error prediction"])
-
-
+tab1, tab2,tab3 = st.tabs(["Original dataset - Analysis", "ML based Error prediction","Compare results"])
 
 def run_models(test):
+
     #Generating the Predicted reference for Acceleration_x error
     accel_x_model_path =  'acceleration_x.pkl'
     with open(accel_x_model_path , 'rb') as f:
@@ -117,7 +107,7 @@ def run_models(test):
     predicted_reference_value_df['pred_ref_gyro_x']=gyro_x_pred_df['pred_ref_gyro_x'].values
     predicted_reference_value_df['pred_ref_gyro_y']=gyro_y_pred_df['pred_ref_gyro_y'].values
     predicted_reference_value_df['pred_ref_gyro_z']=gyro_z_pred_df['pred_ref_gyro_z'].values
-    
+    predicted_reference_value_df.index = final_df.index
     return predicted_reference_value_df
 
 
@@ -143,28 +133,134 @@ with tab1:
                 dataframe.index = pd.to_datetime(dataframe.index)
                 st.write('Analysing Number of samples in given dataset per second')
                 samples_cal_df = dataframe.resample('1s')
-                dataframe_l1=dataframe.resample('1s').mean()
+                st.session_state.dataframe_l1=dataframe.resample('1s').mean()
                 timestamp_test,len_test=get_sample_numbers(samples_cal_df)
                 st.plotly_chart(px.line(x=timestamp_test,y=len_test,title='Number of samples in given second for test setup').update_layout(xaxis_title='sample number',yaxis_title='Number of samples'))
                 colored_header(label='', description='', color_name='yellow-40')
                 st.markdown('''Statistical summary of the given dataset''')
-                st.dataframe(dataframe_l1.describe().style.highlight_max(axis=0))
+                st.dataframe(st.session_state.dataframe_l1.describe().style.highlight_max(axis=0))
                 colored_header(label='', description='', color_name='yellow-40')
-                st.plotly_chart(px.histogram(dataframe_l1,nbins=30,title='Data Distribution of the dataset'),use_container_width=True)
+                st.plotly_chart(px.histogram(st.session_state.dataframe_l1,nbins=30,title='Data Distribution of the dataset'),use_container_width=True)
                 colored_header(label='', description='', color_name='yellow-40')
                 
                 
 with tab2:
+    if "predicted_reference_value_df" not in st.session_state:
+        st.session_state.predicted_reference_value_df = False
+        
+    
     with st.container():
         if st.button('Run ML models on input data'):
            with st.spinner('Running ML on Uploaded dataset'):
-               predicted_reference_value_df= run_models(dataframe_l1)   
+               st.session_state.predicted_reference_value_df= run_models(st.session_state.dataframe_l1)   
                colored_header(label='', description='', color_name='yellow-40')
                result = st.container()
                with result:
-                   st.plotly_chart(px.line(dataframe_l1,x=dataframe_l1.index,y=dataframe_l1.columns,title='Actual test data'),use_container_width=True)
-                   st.plotly_chart(px.line(predicted_reference_value_df,x=predicted_reference_value_df.index,y=predicted_reference_value_df.columns,title='Corrected test data/Predicted reference data'),use_container_width=True)
+                   st.plotly_chart(px.line(st.session_state.dataframe_l1,x=st.session_state.dataframe_l1.index,y=st.session_state.dataframe_l1.columns,title='Actual test data'),use_container_width=True)
+                   st.plotly_chart(px.line(st.session_state.predicted_reference_value_df,x=st.session_state.predicted_reference_value_df.index,y=st.session_state.predicted_reference_value_df.columns,title='Corrected test data/Predicted reference data'),use_container_width=True)
                    colored_header(label='', description='', color_name='yellow-40')
                    st.markdown('''Statistical summary of the Prediction''')
-                   st.plotly_chart(px.histogram(predicted_reference_value_df,nbins=20,title='Data Distribution of Predictions'),use_container_width=True)
+                   st.plotly_chart(px.histogram(st.session_state.predicted_reference_value_df,nbins=20,title='Data Distribution of Predictions'),use_container_width=True)
+with tab3:
     
+    uploaded_file_ref = st.file_uploader('Upload reference dataset in .xlsx format', type='.xlsx', accept_multiple_files=False, on_change=None, args=None, kwargs=None, disabled=False, label_visibility="visible")
+    
+    with st.container():
+        st.write('To compare the results form ML model , please upload the reference data here')
+        if "uploaded_file_ref" not in st.session_state:
+            st.session_state.uploaded_file_ref = False
+            
+        if uploaded_file_ref or st.session_state.uploaded_file_ref:
+            st.session_state.uploaded_file_ref = True
+        
+            if uploaded_file_ref is not None:
+               with st.spinner('Analysing your data..'):
+                   ref_df = pd.read_excel(uploaded_file_ref)
+                   ref_df['Timestamp'] = ref_df['Timestamp'].apply(lambda x : datetime.datetime.fromtimestamp(x).strftime('%H:%M:%S.%f'))
+                   ref_df.set_index('Timestamp',inplace=True)
+                   ref_df.sort_index(inplace=True,ascending = True)
+                   ref_df.index = pd.to_datetime(ref_df.index)
+                   ref_df_sample=ref_df.resample('1s')
+                   ref_df_l1=ref_df.resample('1s').mean()
+                   ref_df_l1.columns = ['Gyro_X_ref','Gyro_Y_ref','Gyro_Z_ref','Accel_X_ref','Accel_Y_ref','Accel_Z_ref']
+                   
+                   
+                   
+                   
+                  # lets merge/join them together on timestamp for visualizing the differences between test setup and reference setup -- Im maaping the test data to reference data
+                   cumm_data = st.session_state.dataframe_l1.merge(ref_df_l1,how='inner',left_on = st.session_state.dataframe_l1.index ,right_on = ref_df_l1.index)
+                   cumm_data.rename(columns = {'key_0':'Timestamp'},inplace=True)
+                   cumm_data.set_index('Timestamp',inplace=True)
+                   cumm_data.sort_index(inplace=True,ascending = True)
+                                       
+                   pred_cumm_data = st.session_state.predicted_reference_value_df.merge(ref_df_l1,how='inner',left_on = st.session_state.predicted_reference_value_df.index ,right_on = ref_df_l1.index)
+                   pred_cumm_data.rename(columns = {'key_0':'Timestamp'},inplace=True)
+                   pred_cumm_data.set_index('Timestamp',inplace=True)
+                   pred_cumm_data.sort_index(inplace=True,ascending = True)
+                                       
+                   
+                   colored_header(label='', description='', color_name='yellow-40')
+                   timestamp_test_ref,len_test_ref=get_sample_numbers(ref_df_sample)
+                   st.plotly_chart(px.line(x=timestamp_test_ref,y=len_test_ref,title='Number of samples in given second for test setup').update_layout(xaxis_title='sample number',yaxis_title='Number of samples'))
+            col1, col2, col3,col4,col5,col6 = st.columns(6)
+            resp_cont=st.container()
+            with col1:
+                if st.button('Accel x'):
+                    with resp_cont:
+                        st.write('The features used for Acceleration X error reduction are :"Accel_Y","Accel_X","Gyro_Z"')
+                        error_after_pred=pred_cumm_data['Accel_X_ref'].values-pred_cumm_data['pred_ref_accel_x'].values
+                        error_before_pred=cumm_data['Accel_X_ref'].values-cumm_data['Accel_X'].values
+                        error_df_accel_x=pd.DataFrame({'Error before prediction':error_before_pred,'Error after prediction':error_after_pred})
+                        st.dataframe(error_df_accel_x.describe().style.highlight_max(axis=0))
+                        #with st.button('Plot error distribution'):
+                        st.plotly_chart(px.histogram(error_df_accel_x,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
+            with col2:
+                 if st.button('Accel y'):
+                     with resp_cont:
+                         st.write('The features used for Acceleration X error reduction are :"Accel_Y","Accel_X"')
+                         error_after_pred=pred_cumm_data['Accel_Y_ref'].values-pred_cumm_data['pred_ref_accel_y'].values
+                         error_before_pred=cumm_data['Accel_Y_ref'].values-cumm_data['Accel_Y'].values
+                         error_df_accel_y=pd.DataFrame({'Error before prediction':error_before_pred,'Error after prediction':error_after_pred})
+                         st.dataframe(error_df_accel_y.describe().style.highlight_max(axis=0))
+                         #with st.button('Plot error distribution'):
+                         st.plotly_chart(px.histogram(error_df_accel_y,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
+            with col3:
+                 if st.button('Accel z'):
+                     with resp_cont:
+                         st.write('The features used for Acceleration X error reduction are :"Accel_Y","Gyro_Z"')
+                         error_after_pred=pred_cumm_data['Accel_Z_ref'].values-pred_cumm_data['pred_ref_accel_z'].values
+                         error_before_pred=cumm_data['Accel_Z_ref'].values-cumm_data['Accel_Z'].values
+                         error_df_accel_z=pd.DataFrame({'Error before prediction':error_before_pred,'Error after prediction':error_after_pred})
+                         st.dataframe(error_df_accel_z.describe().style.highlight_max(axis=0))
+                         #with st.button('Plot error distribution'):
+                         st.plotly_chart(px.histogram(error_df_accel_z,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
+            with col4:
+                 if st.button('Gyro x'):
+                     with resp_cont:
+                         st.write('The features used for Acceleration X error reduction is :"Gyro_X"')
+                         error_after_pred=pred_cumm_data['Gyro_X_ref'].values-pred_cumm_data['pred_ref_gyro_x'].values
+                         error_before_pred=cumm_data['Gyro_X_ref'].values-cumm_data['Gyro_X'].values
+                         error_df_gyro_x=pd.DataFrame({'Error before prediction':error_before_pred,'Error after prediction':error_after_pred})
+                         st.dataframe(error_df_gyro_x.describe().style.highlight_max(axis=0))
+                         #with st.button('Plot error distribution'):
+                         st.plotly_chart(px.histogram(error_df_gyro_x,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
+            with col5:
+                 if st.button('Gyro y'):
+                     with resp_cont:
+                         st.write('The features used for Acceleration X error reduction is :"Gyro_X"')
+                         error_after_pred=pred_cumm_data['Gyro_Y_ref'].values-pred_cumm_data['pred_ref_gyro_y'].values
+                         error_before_pred=cumm_data['Gyro_Y_ref'].values-cumm_data['Gyro_Y'].values
+                         error_df_gyro_y=pd.DataFrame({'Error before prediction':error_before_pred,'Error after prediction':error_after_pred})
+                         st.dataframe(error_df_gyro_y.describe().style.highlight_max(axis=0))
+                        # with st.button('Plot error distribution'):
+                         st.plotly_chart(px.histogram(error_df_gyro_y,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
+            with col6:
+                 if st.button('Gyro z'):
+                     with resp_cont:
+                         st.write('The features used for Acceleration X error reduction is :"Gyro_Z"')
+                         error_after_pred=pred_cumm_data['Gyro_Z_ref'].values-pred_cumm_data['pred_ref_gyro_z'].values
+                         error_before_pred=cumm_data['Gyro_Z_ref'].values-cumm_data['Gyro_Z'].values
+                         error_df_gyro_z=pd.DataFrame({'Error before prediction':error_before_pred,'Error after prediction':error_after_pred})
+                         st.dataframe(error_df_gyro_z.describe().style.highlight_max(axis=0))
+                         #with st.button('Plot error distribution'):
+                         st.plotly_chart(px.histogram(error_df_gyro_z,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
