@@ -212,55 +212,64 @@ with tab3:
                         error_before_pred=cumm_data['Accel_X_ref'].values-cumm_data['Accel_X'].values
                         error_df_accel_x=pd.DataFrame({'Error before prediction':error_before_pred,'Error after prediction':error_after_pred})
                         st.dataframe(error_df_accel_x.describe().style.highlight_max(axis=0))
+                        st.markdown('''The predictions perfomed here are based on the ML model trained on historical data of error with an R2 of 0.58 and MSE of 0.006''')
                         #with st.button('Plot error distribution'):
                         st.plotly_chart(px.histogram(error_df_accel_x,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
+                        
             with col2:
                  if st.button('Accel y'):
                      with resp_cont:
-                         st.write('The features used for Acceleration X error reduction are :"Accel_Y","Accel_X"')
+                         st.write('The features used for Acceleration Y error reduction are :"Accel_Y","Accel_X"')
                          error_after_pred=pred_cumm_data['Accel_Y_ref'].values-pred_cumm_data['pred_ref_accel_y'].values
                          error_before_pred=cumm_data['Accel_Y_ref'].values-cumm_data['Accel_Y'].values
                          error_df_accel_y=pd.DataFrame({'Error before prediction':error_before_pred,'Error after prediction':error_after_pred})
                          st.dataframe(error_df_accel_y.describe().style.highlight_max(axis=0))
+                         st.markdown('''The predictions perfomed here are based on the ML model trained on historical data of error with an R2 of 0.8 and MSE of 0.0012''')
                          #with st.button('Plot error distribution'):
                          st.plotly_chart(px.histogram(error_df_accel_y,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
             with col3:
                  if st.button('Accel z'):
                      with resp_cont:
-                         st.write('The features used for Acceleration X error reduction are :"Accel_Y","Gyro_Z"')
+                         st.write('The features used for Acceleration Z error reduction are :"Accel_Y","Gyro_Z"')
                          error_after_pred=pred_cumm_data['Accel_Z_ref'].values-pred_cumm_data['pred_ref_accel_z'].values
                          error_before_pred=cumm_data['Accel_Z_ref'].values-cumm_data['Accel_Z'].values
                          error_df_accel_z=pd.DataFrame({'Error before prediction':error_before_pred,'Error after prediction':error_after_pred})
                          st.dataframe(error_df_accel_z.describe().style.highlight_max(axis=0))
+                         st.markdown('''The predictions perfomed here are based on the ML model trained on historical data of error with an R2 of 0.53 and MSE of 0.03''')
                          #with st.button('Plot error distribution'):
                          st.plotly_chart(px.histogram(error_df_accel_z,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
             with col4:
                  if st.button('Gyro x'):
                      with resp_cont:
-                         st.write('The features used for Acceleration X error reduction is :"Gyro_X"')
+                         st.write('The features used for  Gyro X error reduction is :"Gyro_X"')
                          error_after_pred=pred_cumm_data['Gyro_X_ref'].values-pred_cumm_data['pred_ref_gyro_x'].values
                          error_before_pred=cumm_data['Gyro_X_ref'].values-cumm_data['Gyro_X'].values
                          error_df_gyro_x=pd.DataFrame({'Error before prediction':error_before_pred,'Error after prediction':error_after_pred})
                          st.dataframe(error_df_gyro_x.describe().style.highlight_max(axis=0))
+                         st.markdown('''The predictions perfomed here are based on the ML model trained on historical data of error with an R2 of 0.92 and MSE of 0.0002''')
                          #with st.button('Plot error distribution'):
                          st.plotly_chart(px.histogram(error_df_gyro_x,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
             with col5:
                  if st.button('Gyro y'):
                      with resp_cont:
-                         st.write('The features used for Acceleration X error reduction is :"Gyro_X"')
+                         st.write('The features used for Gyro Y error reduction is :"Gyro_X"')
                          error_after_pred=pred_cumm_data['Gyro_Y_ref'].values-pred_cumm_data['pred_ref_gyro_y'].values
                          error_before_pred=cumm_data['Gyro_Y_ref'].values-cumm_data['Gyro_Y'].values
                          error_df_gyro_y=pd.DataFrame({'Error before prediction':error_before_pred,'Error after prediction':error_after_pred})
                          st.dataframe(error_df_gyro_y.describe().style.highlight_max(axis=0))
+                         st.markdown('''The predictions perfomed here are based on the ML model trained on historical data of error with an R2 of 0.99 and MSE of 0.0073''')
                         # with st.button('Plot error distribution'):
                          st.plotly_chart(px.histogram(error_df_gyro_y,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
             with col6:
                  if st.button('Gyro z'):
                      with resp_cont:
-                         st.write('The features used for Acceleration X error reduction is :"Gyro_Z"')
+                         st.write('The features used for Gyro Z error reduction is :"Gyro_Z"')
                          error_after_pred=pred_cumm_data['Gyro_Z_ref'].values-pred_cumm_data['pred_ref_gyro_z'].values
                          error_before_pred=cumm_data['Gyro_Z_ref'].values-cumm_data['Gyro_Z'].values
                          error_df_gyro_z=pd.DataFrame({'Error before prediction':error_before_pred,'Error after prediction':error_after_pred})
                          st.dataframe(error_df_gyro_z.describe().style.highlight_max(axis=0))
+                         st.markdown('''The predictions perfomed here are based on the ML model trained on historical data of error with an R2 of 0.95 and MSE of -0.00034''')
                          #with st.button('Plot error distribution'):
                          st.plotly_chart(px.histogram(error_df_gyro_z,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
+            colored_header(label='', description='', color_name='yellow-40')
+            st.plotly_chart(px.line(pred_cumm_data,x=pred_cumm_data.index,y=pred_cumm_data.columns,title='Actural reference vs predicted Reference'),use_container_width=True)
