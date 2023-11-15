@@ -2,9 +2,9 @@
 """
 Created on Fri Nov 10 11:00:22 2023
 
-@author: Vijay Budhewar
+@author: Rideema Malji
 """
-#importing all the necessary modules 
+
 import pandas as pd
 import streamlit as st
 import plotly.express as px
@@ -12,13 +12,12 @@ from streamlit_extras.colored_header import colored_header
 import datetime
 import pickle
 
-#The sidebar on the main streamlit app comes from st.sidebar defined below
+
 with st.sidebar:
     st.title("Sensor Data Analysis ")
     
     st.markdown('''Write Project Description''')
-
-#fuction to get the number of samples from test and the reference dataset
+    
 def get_sample_numbers(df):
     timestamp_test = []
     len_test =[]
@@ -27,13 +26,11 @@ def get_sample_numbers(df):
         len_test.append(len(x[1]))
     return (list(range(1,len(len_test)+1)),len_test)
 
-#Defining total number of streamlit app tabs , with theier names
+
 tab1, tab2,tab3 = st.tabs(["Original dataset - Analysis", "ML based Error prediction","Compare results"])
 
-#function to run the models- regression models to predict errors from different sesors 
 def run_models(test):
 
-    #Below code is copy pasted from developed notebook of Utilising models - the documentation for this has been already submitted 
     #Generating the Predicted reference for Acceleration_x error
     accel_x_model_path =  'acceleration_x.pkl'
     with open(accel_x_model_path , 'rb') as f:
@@ -103,7 +100,6 @@ def run_models(test):
     pred_erro=gyro_z.predict(gyro_z_pred_df['feature_Gyro_Z'].values.reshape(-1,1))
     gyro_z_pred_df['pred_ref_gyro_z'] = gyro_z_pred_df['feature_Gyro_Z']-pred_erro.reshape(1,-1)[0]
 
-    #Creating a dataframe to merge all the predicted reference values
     predicted_reference_value_df =  pd.DataFrame()
     predicted_reference_value_df['pred_ref_accel_x']=accel_x_pred_df['pred_ref_accel_x'].values
     predicted_reference_value_df['pred_ref_accel_y']=accel_y_pred_df['pred_ref_accel_y'].values
@@ -115,25 +111,21 @@ def run_models(test):
     return predicted_reference_value_df
 
 
-#Defining Tab1 - Original dataset - Analysis
 
 with tab1:
-
-    #Uploading the test  file
     uploaded_file = st.file_uploader('Upload test dataset in .xlsx format', type='.xlsx', accept_multiple_files=False, on_change=None, args=None, kwargs=None, disabled=False, label_visibility="visible")
     response_container_qa = st.container()
     
     print('upload file first:',uploaded_file)
     if "uploaded_file_s" not in st.session_state:
         st.session_state.uploaded_file_s = False
-    #Streamlit supporting code to maintain state variables 
+        
     if uploaded_file or st.session_state.uploaded_file_s:
         st.session_state.uploaded_file_s = True
       
         if uploaded_file is not None:
            with st.spinner('Analysing your data..'):
                 total_data=[]
-               #Below code is copy pasted from developed notebooks
                 dataframe = pd.read_excel(uploaded_file)
                 dataframe['Timestamp'] = dataframe['Timestamp'].apply(lambda x : datetime.datetime.fromtimestamp(x).strftime('%H:%M:%S.%f'))
                 dataframe.set_index('Timestamp',inplace=True)
@@ -142,54 +134,104 @@ with tab1:
                 st.write('Analysing Number of samples in given dataset per second')
                 samples_cal_df = dataframe.resample('1s')
                 st.session_state.dataframe_l1=dataframe.resample('1s').mean()
-               #getting number of samples from defined functions for test dataset
                 timestamp_test,len_test=get_sample_numbers(samples_cal_df)
-               #plotting the datasets on Tab1
                 st.plotly_chart(px.line(x=timestamp_test,y=len_test,title='Number of samples in given second for test setup').update_layout(xaxis_title='sample number',yaxis_title='Number of samples'))
                 colored_header(label='', description='', color_name='yellow-40')
                 st.markdown('''Statistical summary of the given dataset''')
                 st.dataframe(st.session_state.dataframe_l1.describe().style.highlight_max(axis=0))
                 colored_header(label='', description='', color_name='yellow-40')
-                st.plotly_chart(px.histogram(st.session_state.dataframe_l1,nbins=30,title='Data Distribution of the dataset'),use_container_width=True)
-                colored_header(label='', description='', color_name='yellow-40')
+                dataset= st.session_state.dataframe_l1
+                col_bins = {c: int(dataset[c].max()-dataset[c].min()) for c in dataset.columns}
+                fig = px.histogram(x=dataset[dataset.columns[0]], nbins=20)
+                st.plotly_chart(
+                    
+                    fig.update_layout(
+    updatemenus=[
+        {
+            "buttons": [
+                {
+                    "label": c,
+                    "method": "update",
+                    "args": [{"x": [dataset[c]], "nbinsx":bins}, {"xaxis.title":c}],
+                }
+                for c, bins in col_bins.items()
+            ],
+            "direction": "right",
+            "type":"buttons",
+            "x":1,
+            "y":1.15
+        }
+    ],
+    xaxis_title="values",
+    title_text = 'Histograms'
+),use_container_width=True
+                    
+                    
+                    
+                    
+                    )
+            
                 
-#Defining Tab2-ML based Error prediction
+                
 with tab2:
-    #Defining streamlit state variables 
     if "predicted_reference_value_df" not in st.session_state:
         st.session_state.predicted_reference_value_df = False
         
-    #Defining the Tab2 in a container 
+    
     with st.container():
-        if st.button('Run ML models on input data'): #Definging the name of the button on Tab2
+        if st.button('Run ML models on input data'):
            with st.spinner('Running ML on Uploaded dataset'):
-               st.session_state.predicted_reference_value_df= run_models(st.session_state.dataframe_l1)   #Calling run_model to generate predictions for each sensor 
+               st.session_state.predicted_reference_value_df= run_models(st.session_state.dataframe_l1)   
                colored_header(label='', description='', color_name='yellow-40')
                result = st.container()
                with result:
-                   #plotting the required plots using plotly on Tab2
                    st.plotly_chart(px.line(st.session_state.dataframe_l1,x=st.session_state.dataframe_l1.index,y=st.session_state.dataframe_l1.columns,title='Actual test data'),use_container_width=True)
                    st.plotly_chart(px.line(st.session_state.predicted_reference_value_df,x=st.session_state.predicted_reference_value_df.index,y=st.session_state.predicted_reference_value_df.columns,title='Corrected test data/Predicted reference data'),use_container_width=True)
                    colored_header(label='', description='', color_name='yellow-40')
-                   st.markdown('''Statistical summary of the Prediction''')
-                   st.plotly_chart(px.histogram(st.session_state.predicted_reference_value_df,nbins=20,title='Data Distribution of Predictions'),use_container_width=True)
-#Defining Tab3 - Compare results
+                   st.markdown('''Histogram for predicted reference values''')
+                   dataset= st.session_state.predicted_reference_value_df
+                   col_bins = {c: int(dataset[c].max()-dataset[c].min()) for c in dataset.columns}
+                   fig = px.histogram(x=dataset[dataset.columns[0]], nbins=20)
+                   
+                   st.plotly_chart(
+                       
+                       
+                       fig.update_layout(
+       updatemenus=[
+           {
+               "buttons": [
+                   {
+                       "label": c,
+                       "method": "update",
+                       "args": [{"x": [dataset[c]], "nbinsx":bins}, {"xaxis.title":c}],
+                   }
+                   for c, bins in col_bins.items()
+               ],
+               "direction": "right",
+               "type":"buttons",
+               "x":1,
+               "y":1.15
+           }
+       ],
+       xaxis_title="values"
+   ),use_container_width=True
+                       
+                       
+                       )
 with tab3:
-    #Uploading dataset for reference 
+    
     uploaded_file_ref = st.file_uploader('Upload reference dataset in .xlsx format', type='.xlsx', accept_multiple_files=False, on_change=None, args=None, kwargs=None, disabled=False, label_visibility="visible")
     
     with st.container():
         st.write('To compare the results form ML model , please upload the reference data here')
-        #Defining streamlit state variables for Tab3 
         if "uploaded_file_ref" not in st.session_state:
             st.session_state.uploaded_file_ref = False
-        
+            
         if uploaded_file_ref or st.session_state.uploaded_file_ref:
             st.session_state.uploaded_file_ref = True
         
             if uploaded_file_ref is not None:
                with st.spinner('Analysing your data..'):
-                   #Below code is copy pasted from developed notebook
                    ref_df = pd.read_excel(uploaded_file_ref)
                    ref_df['Timestamp'] = ref_df['Timestamp'].apply(lambda x : datetime.datetime.fromtimestamp(x).strftime('%H:%M:%S.%f'))
                    ref_df.set_index('Timestamp',inplace=True)
@@ -207,7 +249,7 @@ with tab3:
                    cumm_data.rename(columns = {'key_0':'Timestamp'},inplace=True)
                    cumm_data.set_index('Timestamp',inplace=True)
                    cumm_data.sort_index(inplace=True,ascending = True)
-                # lets merge/join them together on timestamp for visualizing the differences between predicted reference and reference setup -- Im maaping the predicted reference data to reference data
+                                       
                    pred_cumm_data = st.session_state.predicted_reference_value_df.merge(ref_df_l1,how='inner',left_on = st.session_state.predicted_reference_value_df.index ,right_on = ref_df_l1.index)
                    pred_cumm_data.rename(columns = {'key_0':'Timestamp'},inplace=True)
                    pred_cumm_data.set_index('Timestamp',inplace=True)
@@ -217,11 +259,8 @@ with tab3:
                    colored_header(label='', description='', color_name='yellow-40')
                    timestamp_test_ref,len_test_ref=get_sample_numbers(ref_df_sample)
                    st.plotly_chart(px.line(x=timestamp_test_ref,y=len_test_ref,title='Number of samples in given second for test setup').update_layout(xaxis_title='sample number',yaxis_title='Number of samples'))
-            #Creating 6 buttons for 6 sensors on Tab3
             col1, col2, col3,col4,col5,col6 = st.columns(6)
             resp_cont=st.container()
-
-            #Creating the dataframes from the various generated data -> predicted ref , ref and test dataset for each sensor 
             with col1:
                 if st.button('Accel x'):
                     with resp_cont:
@@ -232,7 +271,7 @@ with tab3:
                         st.dataframe(error_df_accel_x.describe().style.highlight_max(axis=0))
                         st.markdown('''The predictions perfomed here are based on the ML model trained on historical data of error with an R2 of 0.58 and MSE of 0.006''')
                         #with st.button('Plot error distribution'):
-                        st.plotly_chart(px.histogram(error_df_accel_x,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
+                       # st.plotly_chart(px.histogram(error_df_accel_x,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
                         
             with col2:
                  if st.button('Accel y'):
@@ -244,7 +283,7 @@ with tab3:
                          st.dataframe(error_df_accel_y.describe().style.highlight_max(axis=0))
                          st.markdown('''The predictions perfomed here are based on the ML model trained on historical data of error with an R2 of 0.8 and MSE of 0.0012''')
                          #with st.button('Plot error distribution'):
-                         st.plotly_chart(px.histogram(error_df_accel_y,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
+                        # st.plotly_chart(px.histogram(error_df_accel_y,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
             with col3:
                  if st.button('Accel z'):
                      with resp_cont:
@@ -255,7 +294,7 @@ with tab3:
                          st.dataframe(error_df_accel_z.describe().style.highlight_max(axis=0))
                          st.markdown('''The predictions perfomed here are based on the ML model trained on historical data of error with an R2 of 0.53 and MSE of 0.03''')
                          #with st.button('Plot error distribution'):
-                         st.plotly_chart(px.histogram(error_df_accel_z,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
+                         #st.plotly_chart(px.histogram(error_df_accel_z,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
             with col4:
                  if st.button('Gyro x'):
                      with resp_cont:
@@ -266,7 +305,7 @@ with tab3:
                          st.dataframe(error_df_gyro_x.describe().style.highlight_max(axis=0))
                          st.markdown('''The predictions perfomed here are based on the ML model trained on historical data of error with an R2 of 0.92 and MSE of 0.0002''')
                          #with st.button('Plot error distribution'):
-                         st.plotly_chart(px.histogram(error_df_gyro_x,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
+                         #st.plotly_chart(px.histogram(error_df_gyro_x,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
             with col5:
                  if st.button('Gyro y'):
                      with resp_cont:
@@ -277,7 +316,7 @@ with tab3:
                          st.dataframe(error_df_gyro_y.describe().style.highlight_max(axis=0))
                          st.markdown('''The predictions perfomed here are based on the ML model trained on historical data of error with an R2 of 0.99 and MSE of 0.0073''')
                         # with st.button('Plot error distribution'):
-                         st.plotly_chart(px.histogram(error_df_gyro_y,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
+                         #st.plotly_chart(px.histogram(error_df_gyro_y,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
             with col6:
                  if st.button('Gyro z'):
                      with resp_cont:
@@ -288,6 +327,6 @@ with tab3:
                          st.dataframe(error_df_gyro_z.describe().style.highlight_max(axis=0))
                          st.markdown('''The predictions perfomed here are based on the ML model trained on historical data of error with an R2 of 0.95 and MSE of -0.00034''')
                          #with st.button('Plot error distribution'):
-                         st.plotly_chart(px.histogram(error_df_gyro_z,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
+                         #st.plotly_chart(px.histogram(error_df_gyro_z,nbins=20,title='Data Distribution of Errors'),use_container_width=True)
             colored_header(label='', description='', color_name='yellow-40')
             st.plotly_chart(px.line(pred_cumm_data,x=pred_cumm_data.index,y=pred_cumm_data.columns,title='Actural reference vs predicted Reference'),use_container_width=True)
