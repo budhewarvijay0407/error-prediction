@@ -2,7 +2,7 @@
 """
 Created on Fri Nov 10 11:00:22 2023
 
-@author: Rideema Malji
+@author: Vijay Budhewar
 """
 #importing all the necessary modules
 import pandas as pd
@@ -178,48 +178,51 @@ with tab1:
                 
 with tab2:
     #Defining streamlit state variables
+    if "tab2_state" not in st.session_state:
+        st.session_state.tab2_state = '' 
     if "predicted_reference_value_df" not in st.session_state:
-        st.session_state.predicted_reference_value_df = False
+        st.session_state.predicted_reference_value_df = None
         
-    
+    result = st.container()
     with st.container():
         if st.button('Run ML models on input data'):
            with st.spinner('Running ML on Uploaded dataset'):
                #Defining streamlit state variables
                st.session_state.predicted_reference_value_df= run_models(st.session_state.dataframe_l1)   
                colored_header(label='', description='', color_name='yellow-40')
-               result = st.container()
-               with result:
-                   st.plotly_chart(px.line(st.session_state.dataframe_l1,x=st.session_state.dataframe_l1.index,y=st.session_state.dataframe_l1.columns,title='Actual test data'),use_container_width=True) #plotting the required plots using plotly on Tab2
-                   st.plotly_chart(px.line(st.session_state.predicted_reference_value_df,x=st.session_state.predicted_reference_value_df.index,y=st.session_state.predicted_reference_value_df.columns,title='Corrected test data/Predicted reference data'),use_container_width=True) #plotting the required plots using plotly on Tab2
-                   colored_header(label='', description='', color_name='yellow-40')
-                   st.markdown('''Histogram for predicted reference values''')
-                   dataset= st.session_state.predicted_reference_value_df
-                   col_bins = {c: int(dataset[c].max()-dataset[c].min()) for c in dataset.columns} 
-                   fig = px.histogram(x=dataset[dataset.columns[0]], nbins=20) #plotting the required plots using plotly on Tab2
-                   
-                   st.plotly_chart(
-                       
-                       
-                       fig.update_layout(
-       updatemenus=[
-           {
-               "buttons": [
-                   {
-                       "label": c,
-                       "method": "update",
-                       "args": [{"x": [dataset[c]], "nbinsx":bins}, {"xaxis.title":c}],
-                   }
-                   for c, bins in col_bins.items()
-               ],
-               "direction": "right",
-               "type":"buttons",
-               "x":1,
-               "y":1.15
-           }
-       ],
-       xaxis_title="values"
-   ),use_container_width=True
+               
+        if st.session_state.predicted_reference_value_df is not None:
+            with result:
+                st.plotly_chart(px.line(st.session_state.dataframe_l1,x=st.session_state.dataframe_l1.index,y=st.session_state.dataframe_l1.columns,title='Actual test data'),use_container_width=True) #plotting the required plots using plotly on Tab2
+                st.plotly_chart(px.line(st.session_state.predicted_reference_value_df,x=st.session_state.predicted_reference_value_df.index,y=st.session_state.predicted_reference_value_df.columns,title='Corrected test data/Predicted reference data'),use_container_width=True) #plotting the required plots using plotly on Tab2
+                colored_header(label='', description='', color_name='yellow-40')
+                st.markdown('''Histogram for predicted reference values''')
+                dataset= st.session_state.predicted_reference_value_df
+                col_bins = {c: int(dataset[c].max()-dataset[c].min()) for c in dataset.columns} 
+                fig = px.histogram(x=dataset[dataset.columns[0]], nbins=20) #plotting the required plots using plotly on Tab2
+                
+                st.plotly_chart(
+                    
+                    
+                    fig.update_layout(
+    updatemenus=[
+        {
+            "buttons": [
+                {
+                    "label": c,
+                    "method": "update",
+                    "args": [{"x": [dataset[c]], "nbinsx":bins}, {"xaxis.title":c}],
+                }
+                for c, bins in col_bins.items()
+            ],
+            "direction": "right",
+            "type":"buttons",
+            "x":1,
+            "y":1.15
+        }
+    ],
+    xaxis_title="values"
+),use_container_width=True
                        
                        
                        )
